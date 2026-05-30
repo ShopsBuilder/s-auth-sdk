@@ -12,7 +12,7 @@ import {
 import {
   useSaleorExternalAuth
 } from "../chunk-Q3UFWDCC.mjs";
-import "../chunk-ZAVFF2AO.mjs";
+import "../chunk-RXMYOFXL.mjs";
 import "../chunk-BZFBMGPG.mjs";
 import "../chunk-263DHBMK.mjs";
 import "../chunk-T35JF4IS.mjs";

@@ -1,7 +1,7 @@
 import {
   SaleorAuthClient,
   createSaleorAuthClient
-} from "./chunk-ZAVFF2AO.mjs";
+} from "./chunk-RXMYOFXL.mjs";
 import "./chunk-BZFBMGPG.mjs";
 import "./chunk-263DHBMK.mjs";
 import {

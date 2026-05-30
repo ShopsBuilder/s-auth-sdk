@@ -18,7 +18,7 @@
     "prepublishOnly": "pnpm build",
     "prebuild": "pnpm clean",
     "watch": "tsup-node src/* --format esm,cjs --dts --watch",
-    "build": "tsup-node src/* --format esm,cjs --dts && clear-package-json package.json -o dist/package.json --fields publishConfig && pnpm copy-files",
+    "build": "tsup-node src/* --format esm,cjs --dts && pnpm copy-files",
     "clean": "rm -rf ./dist/*",
     "test": "vitest",
     "lint": "prettier --write . && eslint --fix src ",
@@ -112,8 +112,7 @@
     }
   },
   "publishConfig": {
-    "access": "public",
-    "directory": "dist"
+    "access": "public"
   },
   "repository": {
     "type": "git",

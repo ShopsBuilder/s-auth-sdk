@@ -2,7 +2,7 @@ import {
   SaleorAuthProvider
 } from "../chunk-74GMXOK4.mjs";
 import "../chunk-NAQNA6DI.mjs";
-import "../chunk-ZAVFF2AO.mjs";
+import "../chunk-RXMYOFXL.mjs";
 import "../chunk-BZFBMGPG.mjs";
 import "../chunk-263DHBMK.mjs";
 import "../chunk-UDLCOX6B.mjs";
