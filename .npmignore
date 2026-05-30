@@ -1,0 +1,14 @@
+src/
+test/
+.github/
+.eslintignore
+.eslintrc.cjs
+.prettierignore
+.prettierrc
+vitest.config.ts
+setup-tests.ts
+tsconfig.json
+justfile
+CODEOWNERS
+.idea/
+.vscode/
