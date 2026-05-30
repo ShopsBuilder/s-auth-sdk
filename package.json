@@ -5,6 +5,13 @@
   "sideEffects": false,
   "files": ["dist/", "README.md"],
   "types": "dist/index.d.ts",
+  "typesVersions": {
+    "*": {
+      "react": ["dist/react/index.d.ts"],
+      "next": ["dist/next/index.d.ts"],
+      "next/server": ["dist/next/server.d.ts"]
+    }
+  },
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "scripts": {
