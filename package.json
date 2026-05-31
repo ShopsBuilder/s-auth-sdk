@@ -1,6 +1,6 @@
 {
   "name": "@shopsbuilder/auth-sdk",
-  "version": "1.2.9",
+  "version": "1.2.11",
   "description": "Auth SDK for Saleor",
   "sideEffects": false,
   "files": ["dist/", "README.md"],

@@ -18,6 +18,13 @@ import { SaleorAccessTokenStorageHandler } from "./SaleorAccessTokenStorageHandl
 export interface SaleorAuthClientProps {
   onAuthRefresh?: (isAuthenticating: boolean) => void;
   saleorApiUrl: string;
+  /**
+   * Override the key prefix used for storage/cookies.
+   * Defaults to `saleorApiUrl`. Useful when the server uses a different
+   * internal URL (e.g. `http://api:8000`) while the client uses the public
+   * URL — pass the client URL here so cookie names match.
+   */
+  storageKeyPrefix?: string;
   refreshTokenStorage?: StorageRepository;
   accessTokenStorage?: StorageRepository;
   tokenGracePeriod?: number;
@@ -32,6 +39,7 @@ export class SaleorAuthClient {
   private tokenRefreshPromise: null | Promise<Response> = null;
   private onAuthRefresh?: (isAuthenticating: boolean) => void;
   private saleorApiUrl: string;
+  private storageKeyPrefix: string;
   /**
    * Persistent storage (for refresh token)
    */
@@ -57,6 +65,7 @@ export class SaleorAuthClient {
 
   constructor({
     saleorApiUrl,
+    storageKeyPrefix,
     refreshTokenStorage,
     accessTokenStorage,
     onAuthRefresh,
@@ -69,15 +78,18 @@ export class SaleorAuthClient {
     }
     this.onAuthRefresh = onAuthRefresh;
     this.saleorApiUrl = saleorApiUrl;
+    this.storageKeyPrefix = storageKeyPrefix ?? saleorApiUrl;
+
+    const keyPrefix = this.storageKeyPrefix;
 
     const refreshTokenRepo =
       refreshTokenStorage ?? (typeof window !== "undefined" ? window.localStorage : undefined);
     this.refreshTokenStorage = refreshTokenRepo
-      ? new SaleorRefreshTokenStorageHandler(refreshTokenRepo, saleorApiUrl)
+      ? new SaleorRefreshTokenStorageHandler(refreshTokenRepo, keyPrefix)
       : null;
 
     const accessTokenRepo = accessTokenStorage ?? getInMemoryAccessTokenStorage();
-    this.accessTokenStorage = new SaleorAccessTokenStorageHandler(accessTokenRepo, saleorApiUrl);
+    this.accessTokenStorage = new SaleorAccessTokenStorageHandler(accessTokenRepo, keyPrefix);
   }
 
   cleanup = () => {
@@ -105,7 +117,8 @@ export class SaleorAuthClient {
     };
 
     const iss = getTokenIss(token);
-    const issuerAndDomainMatch = getURL(input) === iss;
+    const requestUrl = getURL(input);
+    const issuerAndDomainMatch = requestUrl === iss || this.storageKeyPrefix === iss;
     const shouldAddAuthorizationHeader =
       issuerAndDomainMatch || additionalParams?.allowPassingTokenToThirdPartyDomains;
 

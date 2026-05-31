@@ -3,15 +3,17 @@ import { type SaleorAuthEvent, getStorageAuthEventKey } from "../SaleorRefreshTo
 
 interface UseAuthChangeProps {
   saleorApiUrl: string;
+  storageKeyPrefix?: string;
   onSignedIn?: () => void;
   onSignedOut?: () => void;
 }
 
 // used to handle client cache invalidation on login / logout and when
 // token refreshin fails
-export const useAuthChange = ({ saleorApiUrl, onSignedOut, onSignedIn }: UseAuthChangeProps) => {
+export const useAuthChange = ({ saleorApiUrl, storageKeyPrefix, onSignedOut, onSignedIn }: UseAuthChangeProps) => {
+  const keyPrefix = storageKeyPrefix ?? saleorApiUrl;
   const handleAuthChange = (event: SaleorAuthEvent) => {
-    const isCustomAuthEvent = event?.type === getStorageAuthEventKey(saleorApiUrl);
+    const isCustomAuthEvent = event?.type === getStorageAuthEventKey(keyPrefix);
 
     if (!isCustomAuthEvent) {
       return;
@@ -32,10 +34,10 @@ export const useAuthChange = ({ saleorApiUrl, onSignedOut, onSignedIn }: UseAuth
     }
 
     // for current window
-    window.addEventListener(getStorageAuthEventKey(saleorApiUrl), handleAuthChange as EventListener);
+    window.addEventListener(getStorageAuthEventKey(keyPrefix), handleAuthChange as EventListener);
 
     return () => {
-      window.removeEventListener(getStorageAuthEventKey(saleorApiUrl), handleAuthChange as EventListener);
+      window.removeEventListener(getStorageAuthEventKey(keyPrefix), handleAuthChange as EventListener);
     };
   }, []);
 };
