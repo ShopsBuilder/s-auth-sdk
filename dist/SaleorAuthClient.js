@@ -243,15 +243,22 @@ var SaleorAccessTokenStorageHandler = class {
     this.storage = storage;
     this.prefix = prefix;
   }
+  // In-memory cache so the token is available even when the storage
+  // backend is read-only (e.g. Next.js cookies during render).
+  cachedToken = null;
   getAccessToken = () => {
+    if (this.cachedToken)
+      return this.cachedToken;
     const key = getAccessTokenKey(this.prefix);
     return this.storage.getItem(key);
   };
   setAccessToken = (token) => {
+    this.cachedToken = token;
     const key = getAccessTokenKey(this.prefix);
     return this.storage.setItem(key, token);
   };
   clearAuthStorage = () => {
+    this.cachedToken = null;
     const key = getAccessTokenKey(this.prefix);
     return this.storage.removeItem(key);
   };
@@ -312,7 +319,7 @@ var SaleorAuthClient = class {
     if (!token) {
       return fetch(input, init);
     }
-    const headers = new Headers(init?.headers);
+    const headers = init?.headers || {};
     const getURL = (input2) => {
       if (typeof input2 === "string") {
         return input2;
@@ -336,14 +343,10 @@ var SaleorAuthClient = class {
         );
       }
     }
-    if (shouldAddAuthorizationHeader) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
-    const finalInit = { ...init, headers };
-    console.log("[SDK runAuthorizedRequest] iss match:", issuerAndDomainMatch, "| auth header added:", shouldAddAuthorizationHeader);
-    console.log("[SDK runAuthorizedRequest] body present:", !!finalInit.body, "| body type:", typeof finalInit.body, "| body length:", finalInit.body?.length);
-    console.log("[SDK runAuthorizedRequest] headers:", [...headers.entries()].map(([k]) => k).join(", "));
-    return fetch(input, finalInit);
+    return fetch(input, {
+      ...init,
+      headers: shouldAddAuthorizationHeader ? { ...headers, Authorization: `Bearer ${token}` } : headers
+    });
   };
   handleRequestWithTokenRefresh = async (input, requestInit, additionalParams) => {
     const refreshToken = this.refreshTokenStorage?.getRefreshToken();
@@ -414,11 +417,9 @@ var SaleorAuthClient = class {
     }
     const accessToken = this.accessTokenStorage.getAccessToken();
     if (accessToken && !isExpiredToken(accessToken, this.tokenGracePeriod)) {
-      console.log("[SDK fetchWithAuth] path: runAuthorizedRequest (token valid)");
       return this.runAuthorizedRequest(input, init, additionalParams);
     }
     if (refreshToken) {
-      console.log("[SDK fetchWithAuth] path: handleRequestWithTokenRefresh (token expired, has refresh)");
       return this.handleRequestWithTokenRefresh(input, init, additionalParams);
     }
     return fetch(input, init);

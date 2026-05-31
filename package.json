@@ -1,6 +1,6 @@
 {
-  "name": "@saleor/auth-sdk",
-  "version": "1.0.3",
+  "name": "@shopsbuilder/auth-sdk",
+  "version": "1.2.8",
   "description": "Auth SDK for Saleor",
   "sideEffects": false,
   "files": ["dist/", "README.md"],
@@ -116,12 +116,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/saleor/auth-sdk.git"
+    "url": "git+https://github.com/ShopsBuilder/s-auth-sdk.git"
   },
   "bugs": {
-    "url": "https://github.com/saleor/auth-sdk/issues"
+    "url": "https://github.com/ShopsBuilder/s-auth-sdk/issues"
   },
-  "homepage": "https://github.com/saleor/auth-sdk#readme",
+  "homepage": "https://github.com/ShopsBuilder/s-auth-sdk#readme",
   "engines": {
     "node": ">=22.14.0"
   },

@@ -30,15 +30,22 @@ var SaleorAccessTokenStorageHandler = class {
     this.storage = storage;
     this.prefix = prefix;
   }
+  // In-memory cache so the token is available even when the storage
+  // backend is read-only (e.g. Next.js cookies during render).
+  cachedToken = null;
   getAccessToken = () => {
+    if (this.cachedToken)
+      return this.cachedToken;
     const key = getAccessTokenKey(this.prefix);
     return this.storage.getItem(key);
   };
   setAccessToken = (token) => {
+    this.cachedToken = token;
     const key = getAccessTokenKey(this.prefix);
     return this.storage.setItem(key, token);
   };
   clearAuthStorage = () => {
+    this.cachedToken = null;
     const key = getAccessTokenKey(this.prefix);
     return this.storage.removeItem(key);
   };
