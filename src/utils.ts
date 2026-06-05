@@ -49,6 +49,7 @@ export const getRequestData = <TResult, TVariables>(
   ...requestInit,
   method: "POST",
   headers: {
+    ...Object.fromEntries(new Headers(requestInit?.headers).entries()),
     "Content-Type": "application/json",
   },
 

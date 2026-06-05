@@ -18,6 +18,17 @@ import { SaleorAccessTokenStorageHandler } from "./SaleorAccessTokenStorageHandl
 export interface SaleorAuthClientProps {
   onAuthRefresh?: (isAuthenticating: boolean) => void;
   saleorApiUrl: string;
+  /**
+   * Public GraphQL URL encoded in Saleor-issued JWTs as `iss`.
+   * Defaults to `saleorApiUrl`. Set this when server-side requests use a
+   * private transport URL while tokens are issued for a public URL.
+   */
+  publicSaleorApiUrl?: string;
+  /**
+   * Override the key prefix used for storage/cookies.
+   * Defaults to `publicSaleorApiUrl`, then `saleorApiUrl`.
+   */
+  storageKeyPrefix?: string;
   refreshTokenStorage?: StorageRepository;
   accessTokenStorage?: StorageRepository;
   tokenGracePeriod?: number;
@@ -32,6 +43,8 @@ export class SaleorAuthClient {
   private tokenRefreshPromise: null | Promise<Response> = null;
   private onAuthRefresh?: (isAuthenticating: boolean) => void;
   private saleorApiUrl: string;
+  private publicSaleorApiUrl: string;
+  private storageKeyPrefix: string;
   /**
    * Persistent storage (for refresh token)
    */
@@ -57,6 +70,8 @@ export class SaleorAuthClient {
 
   constructor({
     saleorApiUrl,
+    publicSaleorApiUrl,
+    storageKeyPrefix,
     refreshTokenStorage,
     accessTokenStorage,
     onAuthRefresh,
@@ -69,15 +84,19 @@ export class SaleorAuthClient {
     }
     this.onAuthRefresh = onAuthRefresh;
     this.saleorApiUrl = saleorApiUrl;
+    this.publicSaleorApiUrl = publicSaleorApiUrl ?? saleorApiUrl;
+    this.storageKeyPrefix = storageKeyPrefix ?? this.publicSaleorApiUrl;
+
+    const keyPrefix = this.storageKeyPrefix;
 
     const refreshTokenRepo =
       refreshTokenStorage ?? (typeof window !== "undefined" ? window.localStorage : undefined);
     this.refreshTokenStorage = refreshTokenRepo
-      ? new SaleorRefreshTokenStorageHandler(refreshTokenRepo, saleorApiUrl)
+      ? new SaleorRefreshTokenStorageHandler(refreshTokenRepo, keyPrefix)
       : null;
 
     const accessTokenRepo = accessTokenStorage ?? getInMemoryAccessTokenStorage();
-    this.accessTokenStorage = new SaleorAccessTokenStorageHandler(accessTokenRepo, saleorApiUrl);
+    this.accessTokenStorage = new SaleorAccessTokenStorageHandler(accessTokenRepo, keyPrefix);
   }
 
   cleanup = () => {
@@ -92,7 +111,7 @@ export class SaleorAuthClient {
       return fetch(input, init);
     }
 
-    const headers = init?.headers || {};
+    const headers = new Headers(init?.headers);
 
     const getURL = (input: FetchRequestInfo) => {
       if (typeof input === "string") {
@@ -105,9 +124,11 @@ export class SaleorAuthClient {
     };
 
     const iss = getTokenIss(token);
-    const issuerAndDomainMatch = getURL(input) === iss;
+    const requestUrl = getURL(input);
+    const issuerAndDomainMatch = requestUrl === this.saleorApiUrl && iss === this.publicSaleorApiUrl;
     const shouldAddAuthorizationHeader =
-      issuerAndDomainMatch || additionalParams?.allowPassingTokenToThirdPartyDomains;
+      issuerAndDomainMatch ||
+      (iss === this.publicSaleorApiUrl && additionalParams?.allowPassingTokenToThirdPartyDomains);
 
     if (!issuerAndDomainMatch) {
       if (shouldAddAuthorizationHeader) {
@@ -121,10 +142,11 @@ export class SaleorAuthClient {
       }
     }
 
-    return fetch(input, {
-      ...init,
-      headers: shouldAddAuthorizationHeader ? { ...headers, Authorization: `Bearer ${token}` } : headers,
-    });
+    if (shouldAddAuthorizationHeader) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    return fetch(input, { ...init, headers });
   };
 
   private handleRequestWithTokenRefresh: FetchWithAdditionalParams = async (

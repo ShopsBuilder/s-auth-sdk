@@ -105,7 +105,6 @@ importers:
       vitest-fetch-mock:
         specifier: ^0.2.2
         version: 0.2.2(vitest@0.34.6(jsdom@22.1.0))
-    publishDirectory: dist
 
 packages:
 
