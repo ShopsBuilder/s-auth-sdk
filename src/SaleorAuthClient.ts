@@ -19,10 +19,14 @@ export interface SaleorAuthClientProps {
   onAuthRefresh?: (isAuthenticating: boolean) => void;
   saleorApiUrl: string;
   /**
+   * Public GraphQL URL encoded in Saleor-issued JWTs as `iss`.
+   * Defaults to `saleorApiUrl`. Set this when server-side requests use a
+   * private transport URL while tokens are issued for a public URL.
+   */
+  publicSaleorApiUrl?: string;
+  /**
    * Override the key prefix used for storage/cookies.
-   * Defaults to `saleorApiUrl`. Useful when the server uses a different
-   * internal URL (e.g. `http://api:8000`) while the client uses the public
-   * URL — pass the client URL here so cookie names match.
+   * Defaults to `publicSaleorApiUrl`, then `saleorApiUrl`.
    */
   storageKeyPrefix?: string;
   refreshTokenStorage?: StorageRepository;
@@ -39,6 +43,7 @@ export class SaleorAuthClient {
   private tokenRefreshPromise: null | Promise<Response> = null;
   private onAuthRefresh?: (isAuthenticating: boolean) => void;
   private saleorApiUrl: string;
+  private publicSaleorApiUrl: string;
   private storageKeyPrefix: string;
   /**
    * Persistent storage (for refresh token)
@@ -65,6 +70,7 @@ export class SaleorAuthClient {
 
   constructor({
     saleorApiUrl,
+    publicSaleorApiUrl,
     storageKeyPrefix,
     refreshTokenStorage,
     accessTokenStorage,
@@ -78,7 +84,8 @@ export class SaleorAuthClient {
     }
     this.onAuthRefresh = onAuthRefresh;
     this.saleorApiUrl = saleorApiUrl;
-    this.storageKeyPrefix = storageKeyPrefix ?? saleorApiUrl;
+    this.publicSaleorApiUrl = publicSaleorApiUrl ?? saleorApiUrl;
+    this.storageKeyPrefix = storageKeyPrefix ?? this.publicSaleorApiUrl;
 
     const keyPrefix = this.storageKeyPrefix;
 
@@ -104,7 +111,7 @@ export class SaleorAuthClient {
       return fetch(input, init);
     }
 
-    const headers = init?.headers || {};
+    const headers = new Headers(init?.headers);
 
     const getURL = (input: FetchRequestInfo) => {
       if (typeof input === "string") {
@@ -118,9 +125,10 @@ export class SaleorAuthClient {
 
     const iss = getTokenIss(token);
     const requestUrl = getURL(input);
-    const issuerAndDomainMatch = requestUrl === iss || this.storageKeyPrefix === iss;
+    const issuerAndDomainMatch = requestUrl === this.saleorApiUrl && iss === this.publicSaleorApiUrl;
     const shouldAddAuthorizationHeader =
-      issuerAndDomainMatch || additionalParams?.allowPassingTokenToThirdPartyDomains;
+      issuerAndDomainMatch ||
+      (iss === this.publicSaleorApiUrl && additionalParams?.allowPassingTokenToThirdPartyDomains);
 
     if (!issuerAndDomainMatch) {
       if (shouldAddAuthorizationHeader) {
@@ -134,10 +142,11 @@ export class SaleorAuthClient {
       }
     }
 
-    return fetch(input, {
-      ...init,
-      headers: shouldAddAuthorizationHeader ? { ...headers, Authorization: `Bearer ${token}` } : headers,
-    });
+    if (shouldAddAuthorizationHeader) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
+
+    return fetch(input, { ...init, headers });
   };
 
   private handleRequestWithTokenRefresh: FetchWithAdditionalParams = async (
